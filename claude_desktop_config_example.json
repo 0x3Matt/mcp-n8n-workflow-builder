@@ -1,0 +1,28 @@
+{
+  "mcpServers": {
+    "n8n-workflow-builder": {
+      "command": "node",
+      "args": ["/Users/matt/mcp-n8n-workflow-builder/build/index.js"],
+      "env": {
+        "N8N_HOST": "https://utribe.app.n8n.cloud/api/v1/",
+        "N8N_API_KEY": "your_complete_api_key_here",
+        "MCP_PORT": "3456"
+      },
+      "disabled": false,
+      "alwaysAllow": [
+        "list_workflows",
+        "get_workflow",
+        "list_executions",
+        "get_execution"
+      ],
+      "autoApprove": [
+        "create_workflow",
+        "update_workflow",
+        "activate_workflow",
+        "deactivate_workflow",
+        "delete_workflow",
+        "delete_execution"
+      ]
+    }
+  }
+} 

@@ -1,0 +1,187 @@
+{
+  "jsonrpc": "2.0",
+  "method": "tools/call",
+  "params": {
+    "name": "update_workflow",
+    "arguments": {
+      "id": "Uzaskdcjb9ZkbhVl",
+      "name": "Telegram Community Intelligence - Vaultoro & Ubuntu Tribe",
+      "nodes": [
+        {
+          "type": "n8n-nodes-base.scheduleTrigger",
+          "name": "Bi-Weekly Community Scan",
+          "parameters": {
+            "rule": {
+              "interval": [
+                {
+                  "field": "cronExpression",
+                  "cronExpression": "0 9 * * 1,4"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "n8n-nodes-base.code",
+          "name": "Define Target Communities",
+          "parameters": {
+            "mode": "runOnceForAllItems",
+            "jsCode": "const communityConfig = { telegramChannels: { vaultoro: ['@vaultoro', '@vaultoro_community', '@gold_crypto_traders'], ubuntuTribe: ['@ubuntu_tribe_official', '@gift_token_community', '@african_crypto'], goldCrypto: ['@goldbackedcrypto', '@digitalgold', '@precious_metals_crypto'], africanCrypto: ['@africa_bitcoin', '@african_fintech', '@crypto_africa'], competitors: ['@paxgold_official', '@tethergold', '@xaut_community'] }, keywords: { primary: ['vaultoro', 'ubuntu tribe', 'utribe', 'gift token', 'gold backed crypto'], secondary: ['digital gold', 'gold tokenization', 'african crypto', 'remittance crypto', 'inflation hedge'], competitors: ['paxg', 'xaut', 'tether gold', 'usdc gold', 'coinbase gold'] }, personas: { goldInvestor: { keywords: ['gold investment', 'store of value', 'hedge inflation'], painPoints: ['storage costs', 'liquidity', 'verification'] }, africaCryptoTrader: { keywords: ['african bitcoin', 'diaspora', 'remittance', 'local currency'], painPoints: ['high fees', 'currency devaluation', 'access to exchanges'] }, diasporaSaver: { keywords: ['send money home', 'family support', 'stable value'], painPoints: ['transfer fees', 'exchange rates', 'reliability'] } }, analysisGoals: ['community sentiment', 'user questions', 'pain points', 'competitor mentions', 'content opportunities'] }; return [{ json: communityConfig }];"
+          }
+        },
+        {
+          "type": "n8n-nodes-base.httpRequest",
+          "name": "Telegram Bot - Vaultoro Channels",
+          "parameters": {
+            "method": "GET",
+            "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/getUpdates?offset=-100&limit=100",
+            "options": {
+              "timeout": 30000
+            }
+          }
+        },
+        {
+          "type": "n8n-nodes-base.httpRequest",
+          "name": "Telegram Bot - Ubuntu Tribe Channels",
+          "parameters": {
+            "method": "GET",
+            "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/getUpdates?offset=-50&limit=50",
+            "options": {
+              "timeout": 30000
+            }
+          }
+        },
+        {
+          "type": "n8n-nodes-base.httpRequest",
+          "name": "Alternative Twitter Scraping (Optional)",
+          "parameters": {
+            "method": "GET",
+            "url": "=https://api.apify.com/v2/acts/apify~twitter-scraper/run-sync-get-dataset-items?token={{ $env.APIFY_API_TOKEN }}&search={{ $json.keywords.primary[0] }}&maxTweets=50",
+            "options": {
+              "timeout": 45000
+            }
+          }
+        },
+        {
+          "type": "n8n-nodes-base.code",
+          "name": "Process Telegram Messages",
+          "parameters": {
+            "mode": "runOnceForAllItems",
+            "jsCode": "const allInputs = $input.all(); const config = allInputs[0]?.json || {}; const telegramData1 = allInputs[1]?.json?.result || []; const telegramData2 = allInputs[2]?.json?.result || []; const twitterData = allInputs[3]?.json || []; const allTelegramMessages = [...telegramData1, ...telegramData2]; const processedMessages = allTelegramMessages.filter(update => update.message && update.message.text).map(update => { const message = update.message; const text = message.text.toLowerCase(); let sentiment = 'neutral'; let userType = 'general'; let relevantKeywords = []; if (text.includes('excited') || text.includes('amazing') || text.includes('🚀') || text.includes('🏆')) sentiment = 'positive'; else if (text.includes('worried') || text.includes('concerned') || text.includes('problem')) sentiment = 'concerned'; else if (text.includes('confused') || text.includes('help') || text.includes('?')) sentiment = 'curious'; config.keywords.primary.forEach(keyword => { if (text.includes(keyword.toLowerCase())) relevantKeywords.push(keyword); }); if (text.includes('gold') && text.includes('invest')) userType = 'gold_investor'; else if (text.includes('africa') || text.includes('diaspora')) userType = 'african_crypto_trader'; else if (text.includes('remittance') || text.includes('send money')) userType = 'diaspora_saver'; return { text: message.text, sentiment, userType, relevantKeywords, timestamp: new Date(message.date * 1000).toISOString(), chatId: message.chat.id, chatTitle: message.chat.title || 'Private' }; }); const communityData = { timestamp: new Date().toISOString(), sources: { telegram: { totalMessages: processedMessages.length, channels: [...new Set(processedMessages.map(m => m.chatTitle))], messagesByType: processedMessages.reduce((acc, msg) => { acc[msg.userType] = (acc[msg.userType] || 0) + 1; return acc; }, {}), sentimentBreakdown: processedMessages.reduce((acc, msg) => { acc[msg.sentiment] = (acc[msg.sentiment] || 0) + 1; return acc; }, {}) }, twitter: { available: Array.isArray(twitterData) && twitterData.length > 0, count: Array.isArray(twitterData) ? twitterData.length : 0 } }, messages: processedMessages, config: config }; return [{ json: communityData }];"
+          }
+        },
+        {
+          "type": "n8n-nodes-base.code",
+          "name": "Prepare Community Analysis Prompt",
+          "parameters": {
+            "mode": "runOnceForAllItems",
+            "jsCode": "const data = $json; const recentMessages = data.messages.slice(-50); const prompt = `You are a crypto-native AI assistant specialized in Telegram community analysis for gold-backed cryptocurrency platforms. Analyze these community messages: TELEGRAM COMMUNITY DATA: Total Messages: ${data.sources.telegram.totalMessages} Active Channels: ${data.sources.telegram.channels.join(', ')} User Types: ${JSON.stringify(data.sources.telegram.messagesByType, null, 2)} Sentiment Breakdown: ${JSON.stringify(data.sources.telegram.sentimentBreakdown, null, 2)} RECENT MESSAGES SAMPLE: ${JSON.stringify(recentMessages.map(m => ({ text: m.text.substring(0, 200), sentiment: m.sentiment, userType: m.userType, keywords: m.relevantKeywords })), null, 2)} TARGET COMMUNITIES: - Vaultoro: Swiss crypto-to-gold trading platform - Ubuntu Tribe: African gold tokenization (GIFT token) - Focus: Gold investors, African crypto traders, diaspora savers ANALYSIS REQUIREMENTS: Extract insights for marketing team to create content for newsletters, social media, SEO blogs, and podcasts. Provide structured JSON response: { \"weeklyTrendsSummary\": \"2-3 sentences about key community trends and activity\", \"keyTopics\": [\"top 5 discussion topics with frequency indicators\"], \"repeatedQuestions\": [\"common questions users ask in communities\"], \"emotionalTone\": { \"excitement\": \"percentage and examples from messages\", \"concern\": \"percentage and examples\", \"curiosity\": \"percentage and examples\", \"confidence\": \"percentage and examples\" }, \"personas\": [ { \"type\": \"persona name (gold_investor/african_crypto_trader/diaspora_saver)\", \"description\": \"detailed persona description\", \"painPoints\": [\"specific pain points mentioned\"], \"language\": \"how they communicate in communities\", \"contentPreferences\": \"what content they engage with\" } ], \"competitorMentions\": [ { \"competitor\": \"name (PaxG, XAUT, etc.)\", \"context\": \"how mentioned in community\", \"sentiment\": \"positive/negative/neutral\", \"frequency\": \"how often mentioned\" } ], \"contentIdeas\": { \"newsletter\": [\"5 newsletter topics based on community discussions\"], \"socialPost\": [\"5 social media posts that would resonate\"], \"seoBlog\": [\"5 blog post ideas targeting community pain points\"], \"podcastEpisode\": [\"5 podcast topics with potential community guests\"] }, \"recommendedMessaging\": { \"tone\": \"recommended communication tone for each platform\", \"keyMessages\": [\"core messages that resonate with community\"], \"communityEngagement\": \"how to engage with each persona type\", \"contentStrategy\": \"overall content strategy recommendations\" }, \"telegramSpecific\": { \"mostActiveChannels\": [\"channels with highest engagement\"], \"bestPostingTimes\": \"when community is most active\", \"engagementTactics\": [\"specific tactics for Telegram engagement\"] } }`; return [{ json: { prompt, analysisData: data } }];"
+          }
+        },
+        {
+          "type": "n8n-nodes-base.httpRequest",
+          "name": "OpenAI Community Analysis",
+          "parameters": {
+            "method": "POST",
+            "url": "https://api.openai.com/v1/chat/completions",
+            "headers": {
+              "Authorization": "Bearer YOUR_OPENAI_API_KEY",
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "model": "gpt-4",
+              "messages": [
+                {
+                  "role": "system",
+                  "content": "You are an expert in crypto community analysis, specializing in gold-backed cryptocurrencies and African fintech. Focus on actionable marketing insights."
+                },
+                {
+                  "role": "user",
+                  "content": "={{ $json.prompt }}"
+                }
+              ],
+              "max_tokens": 3500,
+              "temperature": 0.3
+            },
+            "options": {
+              "timeout": 60000
+            }
+          }
+        },
+        {
+          "type": "n8n-nodes-base.code",
+          "name": "Format Community Report",
+          "parameters": {
+            "mode": "runOnceForAllItems",
+            "jsCode": "const aiResponse = $json.choices[0].message.content; let analysis; try { analysis = JSON.parse(aiResponse); } catch (e) { analysis = { error: 'Failed to parse AI response', rawResponse: aiResponse.substring(0, 500) + '...' }; } const report = { reportDate: new Date().toISOString().split('T')[0], reportType: 'Bi-Weekly Telegram Community Intelligence', executiveSummary: analysis.weeklyTrendsSummary || 'Telegram community analysis completed for Vaultoro and Ubuntu Tribe channels.', insights: analysis, platforms: ['Telegram'], focusBrands: ['Vaultoro', 'Ubuntu Tribe'], dataQuality: { messagesAnalyzed: 'Variable based on community activity', channelsMonitored: 'Multiple Telegram channels', timestamp: new Date().toISOString() }, actionableItems: { contentIdeas: analysis.contentIdeas || {}, messaging: analysis.recommendedMessaging || {}, engagement: analysis.telegramSpecific || {} }, setupInstructions: { telegramBot: 'Create bot via @BotFather and add to target channels', channels: 'Add bot to: @vaultoro, @ubuntu_tribe_official, @gift_token_community', apiKey: 'Set TELEGRAM_BOT_TOKEN environment variable' }, nextSteps: [ 'Review content ideas for marketing team', 'Implement Telegram-specific engagement tactics', 'Create persona-targeted content', 'Monitor competitor discussions' ] }; return [{ json: report }];"
+          }
+        },
+        {
+          "type": "n8n-nodes-base.httpRequest",
+          "name": "Send Telegram Intelligence Report",
+          "parameters": {
+            "method": "POST",
+            "url": "https://api.resend.com/emails",
+            "headers": {
+              "Authorization": "Bearer YOUR_RESEND_API_KEY",
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "from": "telegram-intel@utribe.app",
+              "to": ["marketing@utribe.app", "team@vaultoro.com"],
+              "subject": "=📱 Bi-Weekly Telegram Community Intelligence - {{ $json.reportDate }}",
+              "html": "=<div style='font-family: Arial, sans-serif; max-width: 900px; margin: 0 auto; background: #f8f9fa; padding: 20px;'><div style='background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);'><h1 style='color: #0088cc; text-align: center; margin-bottom: 30px;'>📱 Telegram Community Intelligence Report</h1><div style='background: #e3f2fd; padding: 15px; border-radius: 5px; margin-bottom: 20px;'><p><strong>Report Date:</strong> {{ $json.reportDate }}</p><p><strong>Focus:</strong> Vaultoro & Ubuntu Tribe Telegram Communities</p><p><strong>Analysis Type:</strong> {{ $json.reportType }}</p></div><h2 style='color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;'>📊 Executive Summary</h2><p style='background: #f1f8ff; padding: 15px; border-left: 4px solid #3498db;'>{{ $json.executiveSummary }}</p><h2 style='color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;'>🔥 Community Trends</h2><p>{{ $json.insights.weeklyTrendsSummary || 'No trends summary available' }}</p><h2 style='color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;'>💬 Key Discussion Topics</h2><ul style='background: #f8f9fa; padding: 15px; border-radius: 5px;'>{{ $json.insights.keyTopics ? $json.insights.keyTopics.map(topic => '<li style=\"margin: 8px 0;\">' + topic + '</li>').join('') : '<li>No key topics identified</li>' }}</ul><h2 style='color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;'>❓ Common Questions</h2><ul style='background: #fff3cd; padding: 15px; border-radius: 5px;'>{{ $json.insights.repeatedQuestions ? $json.insights.repeatedQuestions.map(q => '<li style=\"margin: 8px 0;\">' + q + '</li>').join('') : '<li>No repeated questions identified</li>' }}</ul><h2 style='color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;'>😊 Community Sentiment</h2><div style='display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0;'><div style='background: #d4edda; padding: 15px; border-radius: 5px;'><h4 style='margin: 0 0 10px 0; color: #155724;'>Excitement</h4><p style='margin: 0;'>{{ $json.insights.emotionalTone?.excitement || 'No data' }}</p></div><div style='background: #f8d7da; padding: 15px; border-radius: 5px;'><h4 style='margin: 0 0 10px 0; color: #721c24;'>Concerns</h4><p style='margin: 0;'>{{ $json.insights.emotionalTone?.concern || 'No data' }}</p></div><div style='background: #d1ecf1; padding: 15px; border-radius: 5px;'><h4 style='margin: 0 0 10px 0; color: #0c5460;'>Curiosity</h4><p style='margin: 0;'>{{ $json.insights.emotionalTone?.curiosity || 'No data' }}</p></div><div style='background: #d4edda; padding: 15px; border-radius: 5px;'><h4 style='margin: 0 0 10px 0; color: #155724;'>Confidence</h4><p style='margin: 0;'>{{ $json.insights.emotionalTone?.confidence || 'No data' }}</p></div></div><h2 style='color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;'>👥 Community Personas</h2>{{ $json.insights.personas ? $json.insights.personas.map(persona => '<div style=\"background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; margin: 15px 0; border-radius: 10px;\"><h3 style=\"margin: 0 0 10px 0; text-transform: capitalize;\">' + persona.type.replace('_', ' ') + '</h3><p style=\"margin: 0 0 15px 0;\">' + persona.description + '</p><div style=\"background: rgba(255,255,255,0.1); padding: 10px; border-radius: 5px;\"><strong>Pain Points:</strong> ' + (persona.painPoints ? persona.painPoints.join(', ') : 'None identified') + '</div></div>').join('') : '<p>No personas identified</p>' }}<h2 style='color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;'>🏢 Competitor Activity</h2>{{ $json.insights.competitorMentions ? $json.insights.competitorMentions.map(comp => '<div style=\"background: #fff3cd; padding: 12px; margin: 8px 0; border-radius: 5px; border-left: 4px solid #ffc107;\"><strong>' + comp.competitor + '</strong> - ' + comp.context + ' <span style=\"background: #6c757d; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px;\">' + comp.sentiment + '</span></div>').join('') : '<p style=\"background: #e2e3e5; padding: 15px; border-radius: 5px; color: #6c757d;\">No competitor mentions tracked this period</p>' }}<h2 style='color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;'>💡 Content Ideas for Marketing Team</h2><div style='display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0;'><div><h3 style='color: #e74c3c; margin-bottom: 15px;'>📧 Newsletter Topics</h3><ul style='background: #fdf2f2; padding: 15px; border-radius: 5px; border-left: 4px solid #e74c3c;'>{{ $json.insights.contentIdeas?.newsletter ? $json.insights.contentIdeas.newsletter.map(idea => '<li style=\"margin: 8px 0;\">' + idea + '</li>').join('') : '<li>No newsletter ideas available</li>' }}</ul></div><div><h3 style='color: #f39c12; margin-bottom: 15px;'>📱 Social Media Posts</h3><ul style='background: #fef9e7; padding: 15px; border-radius: 5px; border-left: 4px solid #f39c12;'>{{ $json.insights.contentIdeas?.socialPost ? $json.insights.contentIdeas.socialPost.map(idea => '<li style=\"margin: 8px 0;\">' + idea + '</li>').join('') : '<li>No social post ideas available</li>' }}</ul></div><div><h3 style='color: #27ae60; margin-bottom: 15px;'>📝 SEO Blog Posts</h3><ul style='background: #eafaf1; padding: 15px; border-radius: 5px; border-left: 4px solid #27ae60;'>{{ $json.insights.contentIdeas?.seoBlog ? $json.insights.contentIdeas.seoBlog.map(idea => '<li style=\"margin: 8px 0;\">' + idea + '</li>').join('') : '<li>No blog ideas available</li>' }}</ul></div><div><h3 style='color: #8e44ad; margin-bottom: 15px;'>🎙️ Podcast Episodes</h3><ul style='background: #f4f1f8; padding: 15px; border-radius: 5px; border-left: 4px solid #8e44ad;'>{{ $json.insights.contentIdeas?.podcastEpisode ? $json.insights.contentIdeas.podcastEpisode.map(idea => '<li style=\"margin: 8px 0;\">' + idea + '</li>').join('') : '<li>No podcast ideas available</li>' }}</ul></div></div><h2 style='color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;'>🎯 Recommended Messaging Strategy</h2><div style='background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%); color: white; padding: 25px; border-radius: 10px; margin: 20px 0;'><h3 style='margin: 0 0 15px 0;'>Communication Tone</h3><p style='margin: 0 0 15px 0; font-size: 16px;'>{{ $json.insights.recommendedMessaging?.tone || 'Not specified' }}</p><h3 style='margin: 20px 0 15px 0;'>Key Messages</h3><ul style='margin: 0; padding-left: 20px;'>{{ $json.insights.recommendedMessaging?.keyMessages ? $json.insights.recommendedMessaging.keyMessages.map(msg => '<li style=\"margin: 8px 0;\">' + msg + '</li>').join('') : '<li>No key messages available</li>' }}</ul></div><h2 style='color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;'>📱 Telegram-Specific Insights</h2><div style='background: #e8f5e8; padding: 20px; border-radius: 5px; margin: 20px 0;'><h3 style='color: #2d5a2d; margin-bottom: 15px;'>Most Active Channels</h3><p>{{ $json.insights.telegramSpecific?.mostActiveChannels ? $json.insights.telegramSpecific.mostActiveChannels.join(', ') : 'Data will be available after bot setup' }}</p><h3 style='color: #2d5a2d; margin-bottom: 15px;'>Engagement Tactics</h3><ul>{{ $json.insights.telegramSpecific?.engagementTactics ? $json.insights.telegramSpecific.engagementTactics.map(tactic => '<li style=\"margin: 8px 0;\">' + tactic + '</li>').join('') : '<li>Tactics will be generated from community data</li>' }}</ul></div><div style='background: #f8f9fa; padding: 20px; border-radius: 5px; border: 1px solid #dee2e6; margin-top: 30px;'><h3 style='color: #495057; margin-bottom: 15px;'>🔧 Setup Instructions</h3><ol style='color: #6c757d; line-height: 1.6;'><li>Create Telegram bot via @BotFather</li><li>Add bot to target channels: @vaultoro, @ubuntu_tribe_official, @gift_token_community</li><li>Set TELEGRAM_BOT_TOKEN environment variable</li><li>Configure channel monitoring in workflow</li></ol></div><hr style='margin: 30px 0; border: none; border-top: 1px solid #dee2e6;'><p style='color: #6c757d; font-size: 12px; text-align: center;'><em>Report generated automatically by Telegram Community Intelligence Pipeline</em></p></div></div>"
+            }
+          }
+        }
+      ],
+      "connections": [
+        {
+          "source": "Bi-Weekly Community Scan",
+          "target": "Define Target Communities"
+        },
+        {
+          "source": "Define Target Communities",
+          "target": "Telegram Bot - Vaultoro Channels"
+        },
+        {
+          "source": "Define Target Communities",
+          "target": "Telegram Bot - Ubuntu Tribe Channels"
+        },
+        {
+          "source": "Define Target Communities",
+          "target": "Alternative Twitter Scraping (Optional)"
+        },
+        {
+          "source": "Telegram Bot - Vaultoro Channels",
+          "target": "Process Telegram Messages"
+        },
+        {
+          "source": "Telegram Bot - Ubuntu Tribe Channels",
+          "target": "Process Telegram Messages"
+        },
+        {
+          "source": "Alternative Twitter Scraping (Optional)",
+          "target": "Process Telegram Messages"
+        },
+        {
+          "source": "Process Telegram Messages",
+          "target": "Prepare Community Analysis Prompt"
+        },
+        {
+          "source": "Prepare Community Analysis Prompt",
+          "target": "OpenAI Community Analysis"
+        },
+        {
+          "source": "OpenAI Community Analysis",
+          "target": "Format Community Report"
+        },
+        {
+          "source": "Format Community Report",
+          "target": "Send Telegram Intelligence Report"
+        }
+      ]
+    }
+  },
+  "id": 16
+} 

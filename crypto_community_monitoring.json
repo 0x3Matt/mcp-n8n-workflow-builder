@@ -1,0 +1,190 @@
+{
+  "jsonrpc": "2.0",
+  "method": "tools/call",
+  "params": {
+    "name": "update_workflow",
+    "arguments": {
+      "id": "Uzaskdcjb9ZkbhVl",
+      "name": "Crypto Community Intelligence - Vaultoro & Ubuntu Tribe",
+      "nodes": [
+        {
+          "type": "n8n-nodes-base.scheduleTrigger",
+          "name": "Bi-Weekly Community Scan",
+          "parameters": {
+            "rule": {
+              "interval": [
+                {
+                  "field": "cronExpression",
+                  "cronExpression": "0 9 * * 1,4"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "n8n-nodes-base.code",
+          "name": "Define Crypto Community Strategy",
+          "parameters": {
+            "mode": "runOnceForAllItems",
+            "jsCode": "const communityStrategy = { brands: { primary: ['vaultoro', 'ubuntu tribe', 'utribe', 'gift token'], competitors: ['paxg', 'xaut', 'tether gold', 'usdc', 'binance', 'coinbase'] }, keywords: { goldBacked: ['gold backed crypto', 'digital gold', 'gold tokenization', 'precious metals crypto', 'gold stablecoin'], africaCrypto: ['africa crypto', 'african bitcoin', 'diaspora remittance', 'african fintech', 'ubuntu philosophy'], painPoints: ['high remittance fees', 'currency devaluation', 'inflation hedge', 'crypto volatility', 'gold storage costs', 'financial inclusion'], personas: ['gold investor', 'african crypto trader', 'diaspora saver', 'inflation hedge seeker', 'crypto gold maximalist'] }, searchQueries: { twitter: ['vaultoro OR \"ubuntu tribe\" OR utribe OR \"gift token\"', 'gold backed crypto africa', 'digital gold vs bitcoin', 'remittance crypto africa', 'inflation hedge gold crypto'], telegram: ['vaultoro', 'ubuntu tribe', 'gold backed stablecoin', 'african crypto', 'digital gold investment'] }, contentThemes: { newsletter: ['Weekly Gold-Crypto Market Analysis', 'African Crypto Adoption Stories', 'Digital Gold vs Traditional Gold'], socialPost: ['Community Wins', 'Educational Content', 'Market Insights'], seoBlogs: ['Ultimate Guide to Gold-Backed Crypto', 'Why African Markets Need Digital Gold', 'Vaultoro vs Traditional Gold Investment'], podcasts: ['Crypto Gold Expert Interviews', 'African Fintech Revolution', 'Future of Digital Precious Metals'] } }; return [{ json: communityStrategy }];"
+          }
+        },
+        {
+          "type": "n8n-nodes-base.httpRequest",
+          "name": "Twitter Community Search",
+          "parameters": {
+            "method": "GET",
+            "url": "=https://api.twitter.com/2/tweets/search/recent?query={{ $json.searchQueries.twitter[0] }}&max_results=100&tweet.fields=author_id,created_at,public_metrics,context_annotations&expansions=author_id",
+            "headers": {
+              "Authorization": "Bearer YOUR_TWITTER_BEARER_TOKEN"
+            },
+            "options": {
+              "timeout": 30000
+            }
+          }
+        },
+        {
+          "type": "n8n-nodes-base.httpRequest",
+          "name": "Twitter Sentiment Analysis",
+          "parameters": {
+            "method": "GET",
+            "url": "=https://api.twitter.com/2/tweets/search/recent?query={{ $json.searchQueries.twitter[1] }}&max_results=50&tweet.fields=author_id,created_at,public_metrics,lang&expansions=author_id",
+            "headers": {
+              "Authorization": "Bearer YOUR_TWITTER_BEARER_TOKEN"
+            },
+            "options": {
+              "timeout": 30000
+            }
+          }
+        },
+        {
+          "type": "n8n-nodes-base.code",
+          "name": "Simulate Telegram Data Collection",
+          "parameters": {
+            "mode": "runOnceForAllItems",
+            "jsCode": "const telegramSimulation = { data: [ { channel: '@vaultoro_community', messages: [ { text: 'Just bought more gold with my Bitcoin profits! Vaultoro makes it so easy 🏆', sentiment: 'positive', user_type: 'gold_investor', timestamp: new Date().toISOString() }, { text: 'Anyone else worried about inflation? Thinking of moving some crypto to gold...', sentiment: 'concerned', user_type: 'inflation_hedge_seeker', timestamp: new Date().toISOString() } ] }, { channel: '@ubuntu_tribe_official', messages: [ { text: 'GIFT token is revolutionary for African remittances! Finally, a solution that works 🌍', sentiment: 'excited', user_type: 'diaspora_saver', timestamp: new Date().toISOString() }, { text: 'How does GIFT compare to other gold-backed tokens? Need some clarity...', sentiment: 'curious', user_type: 'african_crypto_trader', timestamp: new Date().toISOString() } ] } ], note: 'This is simulated data. In production, integrate with Telegram API or web scraping tools.' }; return [{ json: telegramSimulation }];"
+          }
+        },
+        {
+          "type": "n8n-nodes-base.code",
+          "name": "Aggregate Community Data",
+          "parameters": {
+            "mode": "runOnceForAllItems",
+            "jsCode": "const allInputs = $input.all(); const strategy = allInputs[0]?.json || {}; const twitterData = allInputs.filter(item => item.json.data && Array.isArray(item.json.data)); const telegramData = allInputs.find(item => item.json.data && item.json.data[0]?.channel) || {}; const aggregatedData = { timestamp: new Date().toISOString(), sources: { twitter: { totalTweets: twitterData.reduce((sum, data) => sum + (data.json.data?.length || 0), 0), engagementMetrics: twitterData.flatMap(data => data.json.data || []).map(tweet => ({ likes: tweet.public_metrics?.like_count || 0, retweets: tweet.public_metrics?.retweet_count || 0, replies: tweet.public_metrics?.reply_count || 0 })) }, telegram: telegramData.json || {}, totalDataPoints: twitterData.length + 1 }, searchContext: strategy, communityInsights: { platforms: ['Twitter', 'Telegram'], focusBrands: ['Vaultoro', 'Ubuntu Tribe'], analysisType: 'crypto-native community monitoring' } }; return [{ json: aggregatedData }];"
+          }
+        },
+        {
+          "type": "n8n-nodes-base.code",
+          "name": "Prepare Crypto-Native AI Analysis",
+          "parameters": {
+            "mode": "runOnceForAllItems",
+            "jsCode": "const data = $json; const prompt = `You are an expert crypto-native AI assistant specialized in community analysis for Web3 and gold-backed stablecoins. Analyze the following social media conversations from Twitter and Telegram communities focused on Vaultoro and Ubuntu Tribe. TWITTER DATA: ${JSON.stringify(data.sources.twitter, null, 2)} TELEGRAM DATA: ${JSON.stringify(data.sources.telegram, null, 2)} BUSINESS CONTEXT: - Vaultoro: Swiss-based crypto-to-gold trading platform (30k+ customers, 95+ countries) - Ubuntu Tribe: African-focused gold tokenization platform (GIFT token, remittances, financial inclusion) - Target audiences: Gold investors, African crypto traders, diaspora savers, inflation hedge seekers Please extract and provide analysis in this JSON format: { \"weeklyTrendsSummary\": \"2-3 sentence overview of key community trends\", \"keyTopics\": [\"top 5 conversation topics with frequency\"], \"repeatedQuestions\": [\"common user questions and concerns\"], \"emotionalTone\": { \"excitement\": \"percentage and examples\", \"fear\": \"percentage and examples\", \"confusion\": \"percentage and examples\", \"hope\": \"percentage and examples\" }, \"personas\": [ { \"type\": \"persona name\", \"description\": \"detailed description\", \"painPoints\": [\"specific pain points\"], \"language\": \"how they communicate\" } ], \"competitorMentions\": [ { \"competitor\": \"name\", \"context\": \"how mentioned\", \"sentiment\": \"positive/negative/neutral\" } ], \"contentIdeas\": { \"newsletter\": [\"5 specific newsletter topics with headlines\"], \"socialPost\": [\"5 social media post ideas with suggested tone\"], \"seoBlog\": [\"5 SEO blog post titles with target keywords\"], \"podcastEpisode\": [\"5 podcast episode ideas with guest suggestions\"] }, \"recommendedToneAndMessaging\": { \"tone\": \"overall recommended tone (informal/authoritative/emotional/educational)\", \"keyMessages\": [\"3-5 core messages that resonate\"], \"languageStyle\": \"specific wording recommendations\", \"communityApproach\": \"how to engage with each persona\" } }`; return [{ json: { prompt, analysisData: data } }];"
+          }
+        },
+        {
+          "type": "n8n-nodes-base.httpRequest",
+          "name": "OpenAI Crypto Community Analysis",
+          "parameters": {
+            "method": "POST",
+            "url": "https://api.openai.com/v1/chat/completions",
+            "headers": {
+              "Authorization": "Bearer YOUR_OPENAI_API_KEY",
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "model": "gpt-4",
+              "messages": [
+                {
+                  "role": "system",
+                  "content": "You are a crypto-native AI assistant specialized in community analysis for Web3 and gold-backed stablecoins. Focus on actionable marketing insights for Vaultoro and Ubuntu Tribe."
+                },
+                {
+                  "role": "user",
+                  "content": "={{ $json.prompt }}"
+                }
+              ],
+              "max_tokens": 3000,
+              "temperature": 0.3
+            },
+            "options": {
+              "timeout": 60000
+            }
+          }
+        },
+        {
+          "type": "n8n-nodes-base.code",
+          "name": "Format Community Intelligence Report",
+          "parameters": {
+            "mode": "runOnceForAllItems",
+            "jsCode": "const aiResponse = $json.choices[0].message.content; let analysis; try { analysis = JSON.parse(aiResponse); } catch (e) { analysis = { error: 'Failed to parse AI response', rawResponse: aiResponse }; } const report = { reportDate: new Date().toISOString().split('T')[0], reportType: 'Bi-Weekly Crypto Community Intelligence', executiveSummary: analysis.weeklyTrendsSummary || 'Community analysis completed for Vaultoro and Ubuntu Tribe social channels.', insights: analysis, platforms: ['Twitter', 'Telegram'], focusBrands: ['Vaultoro', 'Ubuntu Tribe'], dataQuality: { sourcesAnalyzed: 2, totalEngagements: 'Variable based on community activity', timestamp: new Date().toISOString() }, actionableItems: analysis.contentIdeas || {}, nextSteps: [ 'Review content ideas for marketing team', 'Implement persona-specific messaging', 'Monitor competitor mentions', 'Engage with identified community questions' ] }; return [{ json: report }];"
+          }
+        },
+        {
+          "type": "n8n-nodes-base.httpRequest",
+          "name": "Send Community Intelligence Report",
+          "parameters": {
+            "method": "POST",
+            "url": "https://api.resend.com/emails",
+            "headers": {
+              "Authorization": "Bearer YOUR_RESEND_API_KEY",
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "from": "community-intel@utribe.app",
+              "to": ["marketing@utribe.app", "team@vaultoro.com"],
+              "subject": "=🏆 Bi-Weekly Crypto Community Intelligence Report - {{ $json.reportDate }}",
+              "html": "=<div style='font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto;'><h1 style='color: #f7931a;'>🏆 Crypto Community Intelligence Report</h1><p><strong>Report Date:</strong> {{ $json.reportDate }}</p><p><strong>Focus:</strong> Vaultoro & Ubuntu Tribe Community Analysis</p><h2 style='color: #2c3e50;'>📊 Executive Summary</h2><p>{{ $json.executiveSummary }}</p><h2 style='color: #2c3e50;'>🔥 Weekly Trends</h2><p>{{ $json.insights.weeklyTrendsSummary || 'No trends summary available' }}</p><h2 style='color: #2c3e50;'>💬 Key Topics</h2><ul>{{ $json.insights.keyTopics ? $json.insights.keyTopics.map(topic => '<li>' + topic + '</li>').join('') : '<li>No key topics identified</li>' }}</ul><h2 style='color: #2c3e50;'>❓ Repeated Questions</h2><ul>{{ $json.insights.repeatedQuestions ? $json.insights.repeatedQuestions.map(q => '<li>' + q + '</li>').join('') : '<li>No repeated questions identified</li>' }}</ul><h2 style='color: #2c3e50;'>😊 Emotional Sentiment</h2><div style='background: #f8f9fa; padding: 15px; border-radius: 5px;'><p><strong>Excitement:</strong> {{ $json.insights.emotionalTone?.excitement || 'No data' }}</p><p><strong>Fear/Concern:</strong> {{ $json.insights.emotionalTone?.fear || 'No data' }}</p><p><strong>Confusion:</strong> {{ $json.insights.emotionalTone?.confusion || 'No data' }}</p><p><strong>Hope:</strong> {{ $json.insights.emotionalTone?.hope || 'No data' }}</p></div><h2 style='color: #2c3e50;'>👥 Community Personas</h2>{{ $json.insights.personas ? $json.insights.personas.map(persona => '<div style=\"background: #e8f4fd; padding: 10px; margin: 10px 0; border-radius: 5px;\"><h4>' + persona.type + '</h4><p>' + persona.description + '</p><p><strong>Pain Points:</strong> ' + (persona.painPoints ? persona.painPoints.join(', ') : 'None identified') + '</p></div>').join('') : '<p>No personas identified</p>' }}<h2 style='color: #2c3e50;'>🏢 Competitor Mentions</h2>{{ $json.insights.competitorMentions ? $json.insights.competitorMentions.map(comp => '<div style=\"background: #fff3cd; padding: 8px; margin: 5px 0; border-radius: 3px;\"><strong>' + comp.competitor + ':</strong> ' + comp.context + ' <em>(' + comp.sentiment + ')</em></div>').join('') : '<p>No competitor mentions tracked</p>' }}<h2 style='color: #2c3e50;'>💡 Content Ideas</h2><h3>📧 Newsletter Topics</h3><ul>{{ $json.insights.contentIdeas?.newsletter ? $json.insights.contentIdeas.newsletter.map(idea => '<li>' + idea + '</li>').join('') : '<li>No newsletter ideas available</li>' }}</ul><h3>📱 Social Media Posts</h3><ul>{{ $json.insights.contentIdeas?.socialPost ? $json.insights.contentIdeas.socialPost.map(idea => '<li>' + idea + '</li>').join('') : '<li>No social post ideas available</li>' }}</ul><h3>📝 SEO Blog Posts</h3><ul>{{ $json.insights.contentIdeas?.seoBlog ? $json.insights.contentIdeas.seoBlog.map(idea => '<li>' + idea + '</li>').join('') : '<li>No blog ideas available</li>' }}</ul><h3>🎙️ Podcast Episodes</h3><ul>{{ $json.insights.contentIdeas?.podcastEpisode ? $json.insights.contentIdeas.podcastEpisode.map(idea => '<li>' + idea + '</li>').join('') : '<li>No podcast ideas available</li>' }}</ul><h2 style='color: #2c3e50;'>🎯 Recommended Messaging</h2><div style='background: #d4edda; padding: 15px; border-radius: 5px;'><p><strong>Tone:</strong> {{ $json.insights.recommendedToneAndMessaging?.tone || 'Not specified' }}</p><p><strong>Key Messages:</strong></p><ul>{{ $json.insights.recommendedToneAndMessaging?.keyMessages ? $json.insights.recommendedToneAndMessaging.keyMessages.map(msg => '<li>' + msg + '</li>').join('') : '<li>No key messages available</li>' }}</ul><p><strong>Language Style:</strong> {{ $json.insights.recommendedToneAndMessaging?.languageStyle || 'Not specified' }}</p></div><hr><p style='color: #6c757d; font-size: 12px;'><em>Report generated automatically by Crypto Community Intelligence Pipeline</em></p></div>"
+            }
+          }
+        }
+      ],
+      "connections": [
+        {
+          "source": "Bi-Weekly Community Scan",
+          "target": "Define Crypto Community Strategy"
+        },
+        {
+          "source": "Define Crypto Community Strategy",
+          "target": "Twitter Community Search"
+        },
+        {
+          "source": "Define Crypto Community Strategy",
+          "target": "Twitter Sentiment Analysis"
+        },
+        {
+          "source": "Define Crypto Community Strategy",
+          "target": "Simulate Telegram Data Collection"
+        },
+        {
+          "source": "Twitter Community Search",
+          "target": "Aggregate Community Data"
+        },
+        {
+          "source": "Twitter Sentiment Analysis",
+          "target": "Aggregate Community Data"
+        },
+        {
+          "source": "Simulate Telegram Data Collection",
+          "target": "Aggregate Community Data"
+        },
+        {
+          "source": "Aggregate Community Data",
+          "target": "Prepare Crypto-Native AI Analysis"
+        },
+        {
+          "source": "Prepare Crypto-Native AI Analysis",
+          "target": "OpenAI Crypto Community Analysis"
+        },
+        {
+          "source": "OpenAI Crypto Community Analysis",
+          "target": "Format Community Intelligence Report"
+        },
+        {
+          "source": "Format Community Intelligence Report",
+          "target": "Send Community Intelligence Report"
+        }
+      ]
+    }
+  },
+  "id": 15
+} 

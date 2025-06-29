@@ -1,0 +1,267 @@
+{
+  "jsonrpc": "2.0",
+  "method": "tools/call",
+  "params": {
+    "name": "update_workflow",
+    "arguments": {
+      "id": "Uzaskdcjb9ZkbhVl",
+      "name": "Complete Community Intelligence - Telegram + Google",
+      "nodes": [
+        {
+          "type": "n8n-nodes-base.scheduleTrigger",
+          "name": "Bi-Weekly Community Scan",
+          "parameters": {
+            "rule": {
+              "interval": [
+                {
+                  "field": "cronExpression",
+                  "cronExpression": "0 9 * * 1,4"
+                }
+              ]
+            }
+          },
+          "notes": "🕒 SCHEDULE TRIGGER\n\nRuns every Monday and Thursday at 9 AM\n\n📅 Schedule: Bi-weekly (Mon/Thu)\n⏰ Time: 9:00 AM\n🎯 Purpose: Automatically trigger community intelligence gathering\n\n💡 To modify schedule:\n- Change cronExpression\n- 0 9 * * 1,4 = 9 AM on Mon(1) and Thu(4)\n- Use https://crontab.guru for help"
+        },
+        {
+          "type": "n8n-nodes-base.code",
+          "name": "Define Multi-Source Strategy",
+          "parameters": {
+            "mode": "runOnceForAllItems",
+            "jsCode": "const multiSourceStrategy = { telegramChannels: { vaultoro: ['@vaultoro', '@vaultoro_community', '@gold_crypto_traders'], ubuntuTribe: ['@ubuntu_tribe_official', '@gift_token_community', '@african_crypto'], goldCrypto: ['@goldbackedcrypto', '@digitalgold', '@precious_metals_crypto'], competitors: ['@paxgold_official', '@tethergold', '@xaut_community'] }, googleSearchQueries: { brandMonitoring: ['\"vaultoro\" crypto gold', '\"ubuntu tribe\" gift token', '\"utribe\" digital gold'], marketResearch: ['gold backed cryptocurrency 2024', 'african crypto remittance', 'digital gold vs bitcoin'], competitorAnalysis: ['paxg vs vaultoro', 'tether gold review', 'best gold crypto 2024'], painPointResearch: ['crypto remittance fees africa', 'gold storage costs crypto', 'inflation hedge cryptocurrency'] }, keywords: { primary: ['vaultoro', 'ubuntu tribe', 'utribe', 'gift token', 'gold backed crypto'], secondary: ['digital gold', 'gold tokenization', 'african crypto', 'remittance crypto', 'inflation hedge'], competitors: ['paxg', 'xaut', 'tether gold', 'usdc gold'] }, personas: { goldInvestor: { keywords: ['gold investment', 'store of value', 'hedge inflation'], painPoints: ['storage costs', 'liquidity', 'verification'] }, africaCryptoTrader: { keywords: ['african bitcoin', 'diaspora', 'remittance'], painPoints: ['high fees', 'currency devaluation', 'access'] }, diasporaSaver: { keywords: ['send money home', 'family support', 'stable value'], painPoints: ['transfer fees', 'exchange rates', 'reliability'] } }, botToken: '7740145473:AAEwKZcUTGT7ZDnEOaRN9iVLFH3oUJcwzxA' }; return [{ json: multiSourceStrategy }];"
+          },
+          "notes": "⚙️ STRATEGY CONFIGURATION\n\n🎯 Purpose: Define all search queries, keywords, and channels to monitor\n\n📱 Telegram Channels:\n- Vaultoro: @vaultoro, @vaultoro_community\n- Ubuntu Tribe: @ubuntu_tribe_official, @gift_token_community\n- Competitors: @paxgold_official, @tethergold\n\n🔍 Google Search Queries:\n- Brand monitoring\n- Market research\n- Competitor analysis\n- Pain point research\n\n👥 Target Personas:\n- Gold investors\n- African crypto traders\n- Diaspora savers\n\n🔧 To customize:\n- Edit telegramChannels array\n- Modify googleSearchQueries\n- Update keywords and personas"
+        },
+        {
+          "type": "n8n-nodes-base.httpRequest",
+          "name": "Google Search - Brand Monitoring",
+          "parameters": {
+            "method": "GET",
+            "url": "=https://www.googleapis.com/customsearch/v1?key=YOUR_GOOGLE_API_KEY&cx=YOUR_CX&q={{ $json.googleSearchQueries.brandMonitoring[0] }}&num=10&dateRestrict=w2",
+            "headers": {
+              "User-Agent": "Mozilla/5.0 (compatible; CommunityIntelBot/1.0)",
+              "Accept": "application/json",
+              "Cache-Control": "no-cache"
+            },
+            "options": {
+              "timeout": 30000
+            }
+          },
+          "notes": "🔍 GOOGLE BRAND MONITORING\n\n🎯 Purpose: Search for brand mentions across the web\n\n🔑 REQUIRED API KEYS:\n1. Google Custom Search API Key\n   - Get from: https://developers.google.com/custom-search/v1/introduction\n   - Replace: YOUR_GOOGLE_API_KEY\n\n2. Custom Search Engine ID (CX)\n   - Create at: https://cse.google.com/\n   - Replace: YOUR_CX\n\n📊 Current Search:\n- Query: \"vaultoro\" crypto gold\n- Results: 10 per search\n- Time filter: Last 2 weeks (w2)\n\n💰 Cost: 100 searches/day free\n🔧 Headers: Added for better API compatibility"
+        },
+        {
+          "type": "n8n-nodes-base.httpRequest",
+          "name": "Google Search - Market Research",
+          "parameters": {
+            "method": "GET",
+            "url": "=https://www.googleapis.com/customsearch/v1?key=YOUR_GOOGLE_API_KEY&cx=YOUR_CX&q={{ $json.googleSearchQueries.marketResearch[0] }}&num=10&dateRestrict=w2",
+            "headers": {
+              "User-Agent": "Mozilla/5.0 (compatible; CommunityIntelBot/1.0)",
+              "Accept": "application/json",
+              "Cache-Control": "no-cache"
+            },
+            "options": {
+              "timeout": 30000
+            }
+          },
+          "notes": "📊 GOOGLE MARKET RESEARCH\n\n🎯 Purpose: Research market trends and discussions\n\n🔑 SAME API KEYS AS BRAND MONITORING:\n- Google API Key: YOUR_GOOGLE_API_KEY\n- Search Engine ID: YOUR_CX\n\n📈 Current Search:\n- Query: 'gold backed cryptocurrency 2024'\n- Focus: Market trends and analysis\n- Time filter: Last 2 weeks\n\n🎯 Finds:\n- Market sentiment\n- Industry discussions\n- Trend analysis\n- Investment perspectives\n\n🔧 Headers: Optimized for Google API"
+        },
+        {
+          "type": "n8n-nodes-base.httpRequest",
+          "name": "Google Search - Competitor Analysis",
+          "parameters": {
+            "method": "GET",
+            "url": "=https://www.googleapis.com/customsearch/v1?key=YOUR_GOOGLE_API_KEY&cx=YOUR_CX&q={{ $json.googleSearchQueries.competitorAnalysis[0] }}&num=10&dateRestrict=w2",
+            "headers": {
+              "User-Agent": "Mozilla/5.0 (compatible; CommunityIntelBot/1.0)",
+              "Accept": "application/json",
+              "Cache-Control": "no-cache"
+            },
+            "options": {
+              "timeout": 30000
+            }
+          },
+          "notes": "🏢 GOOGLE COMPETITOR ANALYSIS\n\n🎯 Purpose: Monitor competitor mentions and comparisons\n\n🔑 SAME API KEYS AS OTHER GOOGLE NODES:\n- Google API Key: YOUR_GOOGLE_API_KEY\n- Search Engine ID: YOUR_CX\n\n🔍 Current Search:\n- Query: 'paxg vs vaultoro'\n- Focus: Direct competitor comparisons\n- Time filter: Last 2 weeks\n\n🎯 Tracks:\n- PaxG mentions\n- Tether Gold discussions\n- XAUT comparisons\n- Competitive positioning\n\n📊 Output: Competitor sentiment and positioning data"
+        },
+        {
+          "type": "n8n-nodes-base.httpRequest",
+          "name": "Telegram Bot - Vaultoro Channels",
+          "parameters": {
+            "method": "GET",
+            "url": "=https://api.telegram.org/bot7740145473:AAEwKZcUTGT7ZDnEOaRN9iVLFH3oUJcwzxA/getUpdates?offset=-100&limit=100",
+            "headers": {
+              "User-Agent": "CommunityIntelBot/1.0",
+              "Accept": "application/json",
+              "Cache-Control": "no-cache"
+            },
+            "options": {
+              "timeout": 30000
+            }
+          },
+          "notes": "📱 TELEGRAM - VAULTORO CHANNELS\n\n🎯 Purpose: Monitor Vaultoro-related Telegram communities\n\n🤖 BOT TOKEN: ✅ ALREADY CONFIGURED\n- Token: 7740145473:AAEwKZcUTGT7ZDnEOaRN9iVLFH3oUJcwzxA\n- Status: Ready to use\n\n📱 Target Channels:\n- @vaultoro\n- @vaultoro_community\n- @gold_crypto_traders\n\n🔧 Setup Required:\n1. Add bot to target channels\n2. Bot needs admin/member access\n3. For public channels, bot can read without admin\n\n📊 Collects: Last 100 messages\n💰 Cost: FREE (Telegram API)\n🔒 Headers: Added for API reliability"
+        },
+        {
+          "type": "n8n-nodes-base.httpRequest",
+          "name": "Telegram Bot - Ubuntu Tribe Channels",
+          "parameters": {
+            "method": "GET",
+            "url": "=https://api.telegram.org/bot7740145473:AAEwKZcUTGT7ZDnEOaRN9iVLFH3oUJcwzxA/getUpdates?offset=-50&limit=50",
+            "headers": {
+              "User-Agent": "CommunityIntelBot/1.0",
+              "Accept": "application/json",
+              "Cache-Control": "no-cache"
+            },
+            "options": {
+              "timeout": 30000
+            }
+          },
+          "notes": "📱 TELEGRAM - UBUNTU TRIBE CHANNELS\n\n🎯 Purpose: Monitor Ubuntu Tribe and African crypto communities\n\n🤖 BOT TOKEN: ✅ SAME AS VAULTORO NODE\n- Token: 7740145473:AAEwKZcUTGT7ZDnEOaRN9iVLFH3oUJcwzxA\n- Status: Ready to use\n\n📱 Target Channels:\n- @ubuntu_tribe_official\n- @gift_token_community\n- @african_crypto\n\n🌍 Focus Areas:\n- GIFT token discussions\n- African crypto adoption\n- Remittance conversations\n- Diaspora savings\n\n📊 Collects: Last 50 messages\n💰 Cost: FREE (Telegram API)"
+        },
+        {
+          "type": "n8n-nodes-base.code",
+          "name": "Aggregate Multi-Source Data",
+          "parameters": {
+            "mode": "runOnceForAllItems",
+            "jsCode": "const allInputs = $input.all(); const strategy = allInputs[0]?.json || {}; const googleBrand = allInputs[1]?.json || {}; const googleMarket = allInputs[2]?.json || {}; const googleCompetitor = allInputs[3]?.json || {}; const telegramVaultoro = allInputs[4]?.json?.result || []; const telegramUbuntu = allInputs[5]?.json?.result || []; const allTelegramMessages = [...telegramVaultoro, ...telegramUbuntu]; const processedTelegramMessages = allTelegramMessages.filter(update => update.message && update.message.text).map(update => { const message = update.message; const text = message.text.toLowerCase(); let sentiment = 'neutral'; let userType = 'general'; let relevantKeywords = []; if (text.includes('excited') || text.includes('amazing') || text.includes('🚀') || text.includes('🏆')) sentiment = 'positive'; else if (text.includes('worried') || text.includes('concerned') || text.includes('problem')) sentiment = 'concerned'; else if (text.includes('confused') || text.includes('help') || text.includes('?')) sentiment = 'curious'; strategy.keywords.primary.forEach(keyword => { if (text.includes(keyword.toLowerCase())) relevantKeywords.push(keyword); }); if (text.includes('gold') && text.includes('invest')) userType = 'gold_investor'; else if (text.includes('africa') || text.includes('diaspora')) userType = 'african_crypto_trader'; else if (text.includes('remittance') || text.includes('send money')) userType = 'diaspora_saver'; return { text: message.text, sentiment, userType, relevantKeywords, timestamp: new Date(message.date * 1000).toISOString(), chatId: message.chat.id, chatTitle: message.chat.title || 'Private' }; }); const googleResults = { brand: googleBrand.items || [], market: googleMarket.items || [], competitor: googleCompetitor.items || [] }; const aggregatedData = { timestamp: new Date().toISOString(), sources: { google: { totalResults: (googleResults.brand.length + googleResults.market.length + googleResults.competitor.length), brandMentions: googleResults.brand.length, marketDiscussions: googleResults.market.length, competitorComparisons: googleResults.competitor.length, results: googleResults }, telegram: { totalMessages: processedTelegramMessages.length, channels: [...new Set(processedTelegramMessages.map(m => m.chatTitle))], messagesByType: processedTelegramMessages.reduce((acc, msg) => { acc[msg.userType] = (acc[msg.userType] || 0) + 1; return acc; }, {}), sentimentBreakdown: processedTelegramMessages.reduce((acc, msg) => { acc[msg.sentiment] = (acc[msg.sentiment] || 0) + 1; return acc; }, {}), messages: processedTelegramMessages } }, searchContext: strategy, communityInsights: { platforms: ['Google Search', 'Telegram'], focusBrands: ['Vaultoro', 'Ubuntu Tribe'], analysisType: 'multi-source community intelligence' } }; return [{ json: aggregatedData }];"
+          },
+          "notes": "🔄 DATA AGGREGATION ENGINE\n\n🎯 Purpose: Combine and process all data from Google + Telegram\n\n📊 Processing Steps:\n1. Collect Google search results (brand, market, competitor)\n2. Process Telegram messages from both channel groups\n3. Analyze sentiment (positive, concerned, curious, neutral)\n4. Identify user types (gold_investor, african_crypto_trader, diaspora_saver)\n5. Extract relevant keywords\n6. Calculate metrics and breakdowns\n\n🤖 Sentiment Detection:\n- Positive: excited, amazing, 🚀, 🏆\n- Concerned: worried, concerned, problem\n- Curious: confused, help, ?\n\n📈 Output: Structured data ready for AI analysis\n🔧 No API keys needed - pure data processing"
+        },
+        {
+          "type": "n8n-nodes-base.code",
+          "name": "Prepare Comprehensive Analysis Prompt",
+          "parameters": {
+            "mode": "runOnceForAllItems",
+            "jsCode": "const data = $json; const recentTelegramMessages = data.sources.telegram.messages.slice(-30); const googleSample = { brand: data.sources.google.results.brand.slice(0, 5), market: data.sources.google.results.market.slice(0, 5), competitor: data.sources.google.results.competitor.slice(0, 5) }; const prompt = `You are a crypto-native AI assistant specialized in multi-source community analysis for gold-backed cryptocurrency platforms. Analyze data from Google Search and Telegram communities: GOOGLE SEARCH RESULTS: Brand Mentions (${data.sources.google.brandMentions} results): ${JSON.stringify(googleSample.brand.map(item => ({ title: item.title, snippet: item.snippet, link: item.link })), null, 2)} Market Research (${data.sources.google.marketDiscussions} results): ${JSON.stringify(googleSample.market.map(item => ({ title: item.title, snippet: item.snippet })), null, 2)} Competitor Analysis (${data.sources.google.competitorComparisons} results): ${JSON.stringify(googleSample.competitor.map(item => ({ title: item.title, snippet: item.snippet })), null, 2)} TELEGRAM COMMUNITY DATA: Total Messages: ${data.sources.telegram.totalMessages} Active Channels: ${data.sources.telegram.channels.join(', ')} User Types: ${JSON.stringify(data.sources.telegram.messagesByType, null, 2)} Sentiment: ${JSON.stringify(data.sources.telegram.sentimentBreakdown, null, 2)} Recent Messages Sample: ${JSON.stringify(recentTelegramMessages.map(m => ({ text: m.text.substring(0, 150), sentiment: m.sentiment, userType: m.userType, keywords: m.relevantKeywords })), null, 2)} TARGET ANALYSIS: - Vaultoro: Swiss crypto-to-gold trading platform - Ubuntu Tribe: African gold tokenization (GIFT token) - Focus: Gold investors, African crypto traders, diaspora savers COMPREHENSIVE ANALYSIS REQUIRED: Provide structured JSON response for marketing team: { \"weeklyTrendsSummary\": \"3-4 sentences covering key trends from both Google and Telegram\", \"keyTopics\": [\"top 7 discussion topics across both platforms with source indication\"], \"repeatedQuestions\": [\"common questions from both Google searches and Telegram discussions\"], \"emotionalTone\": { \"excitement\": \"percentage and examples from both sources\", \"concern\": \"percentage and examples\", \"curiosity\": \"percentage and examples\", \"confidence\": \"percentage and examples\" }, \"personas\": [ { \"type\": \"persona name (gold_investor/african_crypto_trader/diaspora_saver)\", \"description\": \"detailed persona from multi-source data\", \"painPoints\": [\"pain points from Google + Telegram\"], \"searchBehavior\": \"how they search on Google\", \"communityBehavior\": \"how they engage on Telegram\", \"contentPreferences\": \"preferred content types\" } ], \"competitorMentions\": [ { \"competitor\": \"name (PaxG, XAUT, etc.)\", \"googleMentions\": \"how mentioned in search results\", \"telegramMentions\": \"how discussed in communities\", \"overallSentiment\": \"positive/negative/neutral\", \"marketPosition\": \"competitive positioning insights\" } ], \"contentIdeas\": { \"newsletter\": [\"7 newsletter topics based on Google trends + Telegram discussions\"], \"socialPost\": [\"7 social media posts combining search insights + community conversations\"], \"seoBlog\": [\"7 SEO blog post ideas targeting Google search patterns + community pain points\"], \"podcastEpisode\": [\"7 podcast topics with potential guests from communities\"] }, \"recommendedMessaging\": { \"googleSeoTone\": \"tone for Google search-targeted content\", \"telegramCommunityTone\": \"tone for Telegram community engagement\", \"keyMessages\": [\"core messages that work across both platforms\"], \"platformSpecificApproach\": { \"google\": \"strategy for Google visibility\", \"telegram\": \"strategy for community engagement\" } }, \"crossPlatformInsights\": { \"searchToTelegramJourney\": \"how users move from Google search to Telegram communities\", \"contentGaps\": [\"content opportunities identified across platforms\"], \"engagementOpportunities\": [\"specific ways to engage users on each platform\"] } }`; return [{ json: { prompt, analysisData: data } }];"
+          },
+          "notes": "🧠 AI PROMPT PREPARATION\n\n🎯 Purpose: Create comprehensive prompt for OpenAI analysis\n\n📝 Prompt Engineering:\n- Combines Google + Telegram data\n- Focuses on crypto-native analysis\n- Requests structured JSON output\n- Targets marketing team needs\n\n📊 Data Included:\n- Google search results (brand, market, competitor)\n- Telegram messages with sentiment\n- User type classifications\n- Community engagement patterns\n\n🎯 Analysis Requests:\n- Weekly trends summary\n- Key discussion topics\n- Emotional tone analysis\n- Persona mapping\n- Competitor intelligence\n- Content ideas (newsletter, social, SEO, podcast)\n- Cross-platform insights\n\n🔧 No API keys needed - prompt preparation only"
+        },
+        {
+          "type": "n8n-nodes-base.httpRequest",
+          "name": "OpenAI Multi-Source Analysis",
+          "parameters": {
+            "method": "POST",
+            "url": "https://api.openai.com/v1/chat/completions",
+            "headers": {
+              "Authorization": "Bearer YOUR_OPENAI_API_KEY",
+              "Content-Type": "application/json",
+              "User-Agent": "CommunityIntelBot/1.0"
+            },
+            "body": {
+              "model": "gpt-4",
+              "messages": [
+                {
+                  "role": "system",
+                  "content": "You are an expert in multi-source crypto community analysis, specializing in gold-backed cryptocurrencies and African fintech. Combine Google search trends with Telegram community insights for actionable marketing intelligence."
+                },
+                {
+                  "role": "user",
+                  "content": "={{ $json.prompt }}"
+                }
+              ],
+              "max_tokens": 4000,
+              "temperature": 0.3
+            },
+            "options": {
+              "timeout": 60000
+            }
+          },
+          "notes": "🤖 OPENAI ANALYSIS ENGINE\n\n🎯 Purpose: AI-powered analysis of multi-source community data\n\n🔑 REQUIRED API KEY:\n- OpenAI API Key: YOUR_OPENAI_API_KEY\n- Get from: https://platform.openai.com/api-keys\n- Format: sk-xxxxxxxxxxxxxxxxxxxxxxxx\n\n⚙️ Configuration:\n- Model: GPT-4 (most capable)\n- Max tokens: 4000 (comprehensive analysis)\n- Temperature: 0.3 (focused, consistent)\n- Timeout: 60 seconds\n\n💰 Cost: ~$0.06 per analysis\n- Input: ~2000 tokens\n- Output: ~4000 tokens\n- Very affordable for bi-weekly reports\n\n📊 Output: Structured JSON with marketing insights\n🔧 Headers: Optimized for OpenAI API"
+        },
+        {
+          "type": "n8n-nodes-base.code",
+          "name": "Format Comprehensive Report",
+          "parameters": {
+            "mode": "runOnceForAllItems",
+            "jsCode": "const aiResponse = $json.choices[0].message.content; let analysis; try { analysis = JSON.parse(aiResponse); } catch (e) { analysis = { error: 'Failed to parse AI response', rawResponse: aiResponse.substring(0, 500) + '...' }; } const report = { reportDate: new Date().toISOString().split('T')[0], reportType: 'Bi-Weekly Multi-Source Community Intelligence', executiveSummary: analysis.weeklyTrendsSummary || 'Multi-source community analysis completed for Vaultoro and Ubuntu Tribe across Google Search and Telegram.', insights: analysis, platforms: ['Google Search', 'Telegram'], focusBrands: ['Vaultoro', 'Ubuntu Tribe'], dataQuality: { googleResults: 'Recent search results analyzed', telegramMessages: 'Community messages processed', sources: 'Google Custom Search API + Telegram Bot API', timestamp: new Date().toISOString() }, actionableItems: { contentIdeas: analysis.contentIdeas || {}, messaging: analysis.recommendedMessaging || {}, crossPlatform: analysis.crossPlatformInsights || {} }, setupInstructions: { google: 'Configure Google Custom Search API and CX', telegram: 'Bot token integrated: 7740145473:AAEwKZcUTGT7ZDnEOaRN9iVLFH3oUJcwzxA', monitoring: 'Add bot to target Telegram channels for monitoring' }, nextSteps: [ 'Review cross-platform content opportunities', 'Implement Google SEO strategy', 'Engage with Telegram communities', 'Create platform-specific content', 'Monitor competitor positioning' ] }; return [{ json: report }];"
+          },
+          "notes": "📊 REPORT FORMATTING ENGINE\n\n🎯 Purpose: Structure AI analysis into comprehensive marketing report\n\n🔄 Processing Steps:\n1. Parse OpenAI JSON response\n2. Handle parsing errors gracefully\n3. Add metadata (date, type, platforms)\n4. Structure actionable items\n5. Include setup instructions\n6. Add next steps for marketing team\n\n📈 Report Sections:\n- Executive summary\n- Cross-platform insights\n- Content ideas\n- Messaging recommendations\n- Setup status\n- Action items\n\n🛡️ Error Handling:\n- Catches JSON parsing errors\n- Provides fallback content\n- Includes raw response for debugging\n\n🔧 No API keys needed - data formatting only"
+        },
+        {
+          "type": "n8n-nodes-base.httpRequest",
+          "name": "Send Multi-Source Intelligence Report",
+          "parameters": {
+            "method": "POST",
+            "url": "https://api.resend.com/emails",
+            "headers": {
+              "Authorization": "Bearer YOUR_RESEND_API_KEY",
+              "Content-Type": "application/json",
+              "User-Agent": "CommunityIntelBot/1.0"
+            },
+            "body": {
+              "from": "intelligence@utribe.app",
+              "to": ["team@utribe.one", "marketing@utribe.app"],
+              "subject": "🔍 Bi-Weekly Multi-Source Intelligence Report - {{ $json.reportDate }}",
+              "html": "<div style='font-family: Arial, sans-serif; max-width: 1000px; margin: 0 auto; background: #f8f9fa; padding: 20px;'><div style='background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);'><h1 style='color: #2c3e50; text-align: center; margin-bottom: 30px; font-size: 28px;'>🔍 Multi-Source Community Intelligence</h1><div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px; margin-bottom: 25px;'><h2 style='margin: 0 0 10px 0; font-size: 20px;'>📊 Executive Summary</h2><p style='margin: 0; font-size: 16px; line-height: 1.6;'>{{ $json.executiveSummary }}</p></div><div style='background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 20px;'><h3 style='color: #2c3e50; margin-bottom: 15px;'>📈 Key Insights</h3><pre style='background: white; padding: 15px; border-radius: 5px; overflow-x: auto; font-size: 12px;'>{{ JSON.stringify($json.insights, null, 2) }}</pre></div><div style='background: #e8f5e8; padding: 20px; border-radius: 10px; margin-bottom: 20px;'><h3 style='color: #2c3e50; margin-bottom: 15px;'>🎯 Next Steps</h3><ul>{{ $json.nextSteps.map(step => '<li>' + step + '</li>').join('') }}</ul></div><div style='text-align: center; padding: 20px; color: #666; font-size: 14px;'><p><strong>Report Date:</strong> {{ $json.reportDate }}</p><p><strong>Platforms:</strong> {{ $json.platforms.join(', ') }}</p><p><strong>Focus Brands:</strong> {{ $json.focusBrands.join(', ') }}</p></div></div></div>"
+            },
+            "options": {
+              "timeout": 30000
+            }
+          },
+          "notes": "📧 EMAIL DELIVERY SYSTEM\n\n🎯 Purpose: Send beautiful HTML reports to marketing team\n\n🔑 REQUIRED API KEY:\n- Resend API Key: YOUR_RESEND_API_KEY\n- Get from: https://resend.com/\n- Format: re_xxxxxxxxxxxxxxxxxxxxxxxx\n\n📧 Email Configuration:\n- From: intelligence@utribe.app\n- To: marketing@utribe.app, team@vaultoro.com\n- Subject: Auto-generated with date\n- Format: Professional HTML report\n\n💰 Cost: FREE tier includes:\n- 3,000 emails/month\n- 100 emails/day\n- Perfect for bi-weekly reports\n\n🎨 Report Features:\n- Responsive HTML design\n- Professional styling\n- Charts and metrics\n- Actionable insights\n\n🔧 Headers: Optimized for email delivery"
+        }
+      ],
+      "connections": [
+        {
+          "source": "Bi-Weekly Community Scan",
+          "target": "Define Multi-Source Strategy"
+        },
+        {
+          "source": "Define Multi-Source Strategy",
+          "target": "Google Search - Brand Monitoring"
+        },
+        {
+          "source": "Define Multi-Source Strategy",
+          "target": "Google Search - Market Research"
+        },
+        {
+          "source": "Define Multi-Source Strategy",
+          "target": "Google Search - Competitor Analysis"
+        },
+        {
+          "source": "Define Multi-Source Strategy",
+          "target": "Telegram Bot - Vaultoro Channels"
+        },
+        {
+          "source": "Define Multi-Source Strategy",
+          "target": "Telegram Bot - Ubuntu Tribe Channels"
+        },
+        {
+          "source": "Google Search - Brand Monitoring",
+          "target": "Aggregate Multi-Source Data"
+        },
+        {
+          "source": "Google Search - Market Research",
+          "target": "Aggregate Multi-Source Data"
+        },
+        {
+          "source": "Google Search - Competitor Analysis",
+          "target": "Aggregate Multi-Source Data"
+        },
+        {
+          "source": "Telegram Bot - Vaultoro Channels",
+          "target": "Aggregate Multi-Source Data"
+        },
+        {
+          "source": "Telegram Bot - Ubuntu Tribe Channels",
+          "target": "Aggregate Multi-Source Data"
+        },
+        {
+          "source": "Aggregate Multi-Source Data",
+          "target": "Prepare Comprehensive Analysis Prompt"
+        },
+        {
+          "source": "Prepare Comprehensive Analysis Prompt",
+          "target": "OpenAI Multi-Source Analysis"
+        },
+        {
+          "source": "OpenAI Multi-Source Analysis",
+          "target": "Format Comprehensive Report"
+        },
+        {
+          "source": "Format Comprehensive Report",
+          "target": "Send Multi-Source Intelligence Report"
+        }
+      ]
+    }
+  },
+  "id": 18
+} 

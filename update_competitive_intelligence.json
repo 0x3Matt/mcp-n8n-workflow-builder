@@ -1,0 +1,186 @@
+{
+  "jsonrpc": "2.0",
+  "method": "tools/call",
+  "params": {
+    "name": "update_workflow",
+    "arguments": {
+      "id": "Uzaskdcjb9ZkbhVl",
+      "name": "Competitive Intelligence Pipeline - Enhanced",
+      "nodes": [
+        {
+          "type": "n8n-nodes-base.scheduleTrigger",
+          "name": "Daily Intelligence Scan",
+          "parameters": {
+            "rule": {
+              "interval": [
+                {
+                  "field": "cronExpression",
+                  "cronExpression": "0 8 * * *"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "n8n-nodes-base.code",
+          "name": "Define Search Strategy",
+          "parameters": {
+            "mode": "runOnceForAllItems",
+            "jsCode": "const searchStrategy = { keywords: { brand: ['utribe', 'your-company'], category: ['automation tool', 'workflow builder', 'no-code platform', 'process automation'], painPoints: ['manual processes', 'repetitive tasks', 'workflow bottlenecks', 'team productivity'], competitors: ['zapier', 'make.com', 'n8n', 'automate.io', 'microsoft power automate'] }, searchQueries: [ 'automation tool reviews 2024', 'workflow automation pain points', 'zapier alternatives', 'no-code automation platforms', 'business process automation tools' ], businessContext: 'We are a workflow automation platform helping businesses eliminate manual processes and boost productivity' }; return [{ json: searchStrategy }];"
+          }
+        },
+        {
+          "type": "n8n-nodes-base.httpRequest",
+          "name": "Google Search - Market Research",
+          "parameters": {
+            "method": "GET",
+            "url": "=https://www.googleapis.com/customsearch/v1?key=YOUR_GOOGLE_API_KEY&cx=YOUR_CX&q={{ $json.searchQueries[0] }}&num=10",
+            "options": {
+              "timeout": 30000
+            }
+          }
+        },
+        {
+          "type": "n8n-nodes-base.httpRequest",
+          "name": "YouTube Search - Video Content",
+          "parameters": {
+            "method": "GET",
+            "url": "=https://www.googleapis.com/youtube/v3/search?part=snippet&q={{ $json.keywords.category[0] }}&key=YOUR_YOUTUBE_API_KEY&maxResults=10&type=video",
+            "options": {
+              "timeout": 30000
+            }
+          }
+        },
+        {
+          "type": "n8n-nodes-base.httpRequest",
+          "name": "Twitter Search - Social Sentiment",
+          "parameters": {
+            "method": "GET",
+            "url": "=https://api.twitter.com/2/tweets/search/recent?query={{ $json.keywords.painPoints[0] }}&max_results=10",
+            "headers": {
+              "Authorization": "Bearer YOUR_TWITTER_BEARER_TOKEN"
+            },
+            "options": {
+              "timeout": 30000
+            }
+          }
+        },
+        {
+          "type": "n8n-nodes-base.code",
+          "name": "Aggregate Multi-Platform Data",
+          "parameters": {
+            "mode": "runOnceForAllItems",
+            "jsCode": "const allInputs = $input.all(); const aggregatedData = { timestamp: new Date().toISOString(), sources: { google: allInputs.find(item => item.json.items) || {}, youtube: allInputs.find(item => item.json.items && item.json.items[0]?.id?.videoId) || {}, twitter: allInputs.find(item => item.json.data) || {} }, totalDataPoints: allInputs.length, searchContext: allInputs[0]?.json || {} }; return [{ json: aggregatedData }];"
+          }
+        },
+        {
+          "type": "n8n-nodes-base.code",
+          "name": "Prepare AI Analysis Prompt",
+          "parameters": {
+            "mode": "runOnceForAllItems",
+            "jsCode": "const data = $json; const prompt = `You are an expert competitive intelligence analyst. Analyze the following multi-platform data and provide a comprehensive report: GOOGLE SEARCH: ${JSON.stringify(data.sources.google, null, 2)} YOUTUBE CONTENT: ${JSON.stringify(data.sources.youtube, null, 2)} TWITTER SENTIMENT: ${JSON.stringify(data.sources.twitter, null, 2)} BUSINESS CONTEXT: We are a workflow automation platform competing with tools like Zapier and Make.com. Provide analysis in this JSON format: { \"painPoints\": [\"top 5 customer pain points\"], \"personas\": [\"primary customer segments with descriptions\"], \"competitors\": [\"key competitors with positioning analysis\"], \"marketSentiment\": \"overall market sentiment and trends\", \"opportunities\": [\"specific opportunities for our platform\"], \"recommendations\": [\"actionable strategic recommendations\"] }`; return [{ json: { prompt, analysisData: data } }];"
+          }
+        },
+        {
+          "type": "n8n-nodes-base.httpRequest",
+          "name": "OpenAI Analysis",
+          "parameters": {
+            "method": "POST",
+            "url": "https://api.openai.com/v1/chat/completions",
+            "headers": {
+              "Authorization": "Bearer YOUR_OPENAI_API_KEY",
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "model": "gpt-4",
+              "messages": [
+                {
+                  "role": "user",
+                  "content": "={{ $json.prompt }}"
+                }
+              ],
+              "max_tokens": 2000,
+              "temperature": 0.3
+            },
+            "options": {
+              "timeout": 60000
+            }
+          }
+        },
+        {
+          "type": "n8n-nodes-base.code",
+          "name": "Format Intelligence Report",
+          "parameters": {
+            "mode": "runOnceForAllItems",
+            "jsCode": "const aiResponse = $json.choices[0].message.content; let aiAnalysis; try { aiAnalysis = JSON.parse(aiResponse); } catch (e) { aiAnalysis = { error: 'Failed to parse AI response', rawResponse: aiResponse }; } const report = { reportDate: new Date().toISOString().split('T')[0], executiveSummary: `Daily competitive intelligence scan completed. Analyzed multiple data sources across Google, YouTube, and Twitter.`, insights: aiAnalysis, dataQuality: { sourcesAnalyzed: 3, timestamp: new Date().toISOString() }, nextActions: aiAnalysis.recommendations || [] }; return [{ json: report }];"
+          }
+        },
+        {
+          "type": "n8n-nodes-base.httpRequest",
+          "name": "Send Intelligence Report Email",
+          "parameters": {
+            "method": "POST",
+            "url": "https://api.resend.com/emails",
+            "headers": {
+              "Authorization": "Bearer YOUR_RESEND_API_KEY",
+              "Content-Type": "application/json"
+            },
+            "body": {
+              "from": "intelligence@utribe.app",
+              "to": ["team@utribe.app"],
+              "subject": "=Daily Competitive Intelligence Report - {{ $json.reportDate }}",
+              "html": "=<h1>🎯 Daily Competitive Intelligence Report</h1><p><strong>Date:</strong> {{ $json.reportDate }}</p><h2>📊 Executive Summary</h2><p>{{ $json.executiveSummary }}</p><h2>🔍 Key Pain Points</h2><ul>{{ $json.insights.painPoints ? $json.insights.painPoints.map(point => '<li>' + point + '</li>').join('') : '<li>No pain points identified</li>' }}</ul><h2>👥 Customer Personas</h2><ul>{{ $json.insights.personas ? $json.insights.personas.map(persona => '<li>' + persona + '</li>').join('') : '<li>No personas identified</li>' }}</ul><h2>🏢 Competitor Analysis</h2><ul>{{ $json.insights.competitors ? $json.insights.competitors.map(comp => '<li>' + comp + '</li>').join('') : '<li>No competitors identified</li>' }}</ul><h2>📈 Market Sentiment</h2><p>{{ $json.insights.marketSentiment || 'No sentiment analysis available' }}</p><h2>💡 Opportunities</h2><ul>{{ $json.insights.opportunities ? $json.insights.opportunities.map(opp => '<li>' + opp + '</li>').join('') : '<li>No opportunities identified</li>' }}</ul><p><em>Report generated automatically by Competitive Intelligence Pipeline</em></p>"
+            }
+          }
+        }
+      ],
+      "connections": [
+        {
+          "source": "Daily Intelligence Scan",
+          "target": "Define Search Strategy"
+        },
+        {
+          "source": "Define Search Strategy",
+          "target": "Google Search - Market Research"
+        },
+        {
+          "source": "Define Search Strategy",
+          "target": "YouTube Search - Video Content"
+        },
+        {
+          "source": "Define Search Strategy",
+          "target": "Twitter Search - Social Sentiment"
+        },
+        {
+          "source": "Google Search - Market Research",
+          "target": "Aggregate Multi-Platform Data"
+        },
+        {
+          "source": "YouTube Search - Video Content",
+          "target": "Aggregate Multi-Platform Data"
+        },
+        {
+          "source": "Twitter Search - Social Sentiment",
+          "target": "Aggregate Multi-Platform Data"
+        },
+        {
+          "source": "Aggregate Multi-Platform Data",
+          "target": "Prepare AI Analysis Prompt"
+        },
+        {
+          "source": "Prepare AI Analysis Prompt",
+          "target": "OpenAI Analysis"
+        },
+        {
+          "source": "OpenAI Analysis",
+          "target": "Format Intelligence Report"
+        },
+        {
+          "source": "Format Intelligence Report",
+          "target": "Send Intelligence Report Email"
+        }
+      ]
+    }
+  },
+  "id": 14
+} 

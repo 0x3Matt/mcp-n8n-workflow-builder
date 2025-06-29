@@ -1,0 +1,16 @@
+{
+  "jsonrpc": "2.0",
+  "method": "tools/call",
+  "params": {
+    "name": "update_workflow_node",
+    "arguments": {
+      "workflowId": "Uzaskdcjb9ZkbhVl",
+      "nodeId": "node_11",
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const aiResponse = $json.choices[0].message.content; let analysis; try { analysis = JSON.parse(aiResponse); } catch (e) { analysis = { error: 'Failed to parse AI response', rawResponse: aiResponse.substring(0, 500) + '...' }; } const report = { reportDate: new Date().toISOString().split('T')[0], reportType: 'Bi-Weekly Google Search Intelligence Report', executiveSummary: analysis.weeklyTrendsSummary || 'Google search analysis completed for Vaultoro and Ubuntu Tribe across web sources.', insights: analysis, platforms: ['Google Search'], focusBrands: ['Vaultoro', 'Ubuntu Tribe'], dataQuality: { googleResults: 'Recent search results analyzed from gold and crypto websites', sources: 'Google Custom Search API', searchSites: 'Reddit, Kitco, Gold.org, CoinTelegraph, CoinDesk, Mining sites', timestamp: new Date().toISOString() }, actionableItems: { contentIdeas: analysis.contentIdeas || {}, messaging: analysis.recommendedMessaging || {}, searchInsights: analysis.searchInsights || {} }, setupInstructions: { google: 'Google Custom Search API configured with CX: 53d43011a1d6f4083', searchEngine: 'Monitoring gold + crypto websites for brand mentions', apiStatus: 'Ready for bi-weekly intelligence gathering' }, nextSteps: [ 'Review Google search trend opportunities', 'Implement SEO strategy based on search patterns', 'Create content targeting discovered search queries', 'Monitor competitor search visibility', 'Expand search query variations for better coverage' ] }; return [{ json: report }];"
+      }
+    }
+  },
+  "id": 21
+} 

@@ -1,0 +1,70 @@
+{
+  "jsonrpc": "2.0",
+  "method": "tools/call",
+  "params": {
+    "name": "create_workflow",
+    "arguments": {
+      "name": "Daily Reports Automation",
+      "nodes": [
+        {
+          "type": "n8n-nodes-base.scheduleTrigger",
+          "name": "Daily Schedule",
+          "parameters": {
+            "rule": {
+              "interval": [
+                {
+                  "field": "cronExpression",
+                  "cronExpression": "0 9 * * 1-5"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "n8n-nodes-base.code",
+          "name": "Generate Report Data",
+          "parameters": {
+            "mode": "runOnceForAllItems",
+            "jsCode": "const today = new Date(); const reportData = { date: today.toISOString().split('T')[0], metrics: { totalTasks: 45, completedTasks: 38, pendingTasks: 7 }, summary: 'Daily productivity report' }; return [{ json: reportData }];"
+          }
+        },
+        {
+          "type": "n8n-nodes-base.httpRequest",
+          "name": "Send Report",
+          "parameters": {
+            "method": "POST",
+            "url": "https://webhook.site/test",
+            "sendBody": true,
+            "bodyParameters": {
+              "parameters": [
+                {
+                  "name": "report_date",
+                  "value": "={{ $json.date }}"
+                },
+                {
+                  "name": "total_tasks",
+                  "value": "={{ $json.metrics.totalTasks }}"
+                },
+                {
+                  "name": "completed_tasks", 
+                  "value": "={{ $json.metrics.completedTasks }}"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "connections": [
+        {
+          "source": "Daily Schedule",
+          "target": "Generate Report Data"
+        },
+        {
+          "source": "Generate Report Data",
+          "target": "Send Report"
+        }
+      ]
+    }
+  },
+  "id": 7
+} 

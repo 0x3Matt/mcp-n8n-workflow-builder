@@ -1,0 +1,80 @@
+{
+  "jsonrpc": "2.0",
+  "method": "tools/call",
+  "params": {
+    "name": "create_workflow",
+    "arguments": {
+      "name": "Competitive Intelligence Pipeline - Phase 1",
+      "nodes": [
+        {
+          "type": "n8n-nodes-base.scheduleTrigger",
+          "name": "Daily Intelligence Scan",
+          "parameters": {
+            "rule": {
+              "interval": [
+                {
+                  "field": "cronExpression",
+                  "cronExpression": "0 8 * * *"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "n8n-nodes-base.code",
+          "name": "Define Search Keywords",
+          "parameters": {
+            "mode": "runOnceForAllItems",
+            "jsCode": "const searchConfig = { keywords: { brand: ['utribe', 'your-brand-name'], category: ['automation tool', 'workflow builder', 'no-code platform'], painPoints: ['manual processes', 'repetitive tasks', 'workflow automation'], competitors: ['zapier', 'make.com', 'n8n', 'automate.io'] }, platforms: ['youtube', 'tiktok', 'twitter', 'telegram', 'google'], businessContext: 'We are a workflow automation platform helping businesses automate repetitive tasks' }; return [{ json: searchConfig }];"
+          }
+        },
+        {
+          "type": "n8n-nodes-base.httpRequest",
+          "name": "Google Search API",
+          "parameters": {
+            "method": "GET",
+            "url": "=https://www.googleapis.com/customsearch/v1?key=YOUR_API_KEY&cx=YOUR_CX&q={{ $json.keywords.category[0] }} {{ $json.keywords.painPoints[0] }}",
+            "options": {
+              "timeout": 30000
+            }
+          }
+        },
+        {
+          "type": "n8n-nodes-base.code",
+          "name": "Process Search Results",
+          "parameters": {
+            "mode": "runOnceForAllItems",
+            "jsCode": "const results = $input.all(); const processedData = { timestamp: new Date().toISOString(), searchResults: results.map(item => ({ title: item.json.items?.[0]?.title || 'No title', snippet: item.json.items?.[0]?.snippet || 'No snippet', link: item.json.items?.[0]?.link || '', source: 'google' })), totalResults: results.length }; return [{ json: processedData }];"
+          }
+        },
+        {
+          "type": "n8n-nodes-base.code",
+          "name": "Prepare AI Analysis Prompt",
+          "parameters": {
+            "mode": "runOnceForAllItems",
+            "jsCode": "const data = $json; const prompt = `You are a competitive intelligence analyst. Analyze the following search results and provide insights: SEARCH RESULTS: ${JSON.stringify(data.searchResults, null, 2)} Please provide: 1. TOP 3 PAIN POINTS mentioned 2. PRIMARY PERSONAS (customer types) 3. KEY COMPETITORS identified 4. MARKET SENTIMENT 5. OPPORTUNITIES for our automation platform Format as structured JSON.`; return [{ json: { prompt, searchData: data } }];"
+          }
+        }
+      ],
+      "connections": [
+        {
+          "source": "Daily Intelligence Scan",
+          "target": "Define Search Keywords"
+        },
+        {
+          "source": "Define Search Keywords", 
+          "target": "Google Search API"
+        },
+        {
+          "source": "Google Search API",
+          "target": "Process Search Results"
+        },
+        {
+          "source": "Process Search Results",
+          "target": "Prepare AI Analysis Prompt"
+        }
+      ]
+    }
+  },
+  "id": 11
+} 
